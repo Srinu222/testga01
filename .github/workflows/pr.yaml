@@ -1,0 +1,33 @@
+name: Create Pull Request
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  create_pull_request:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Print success message
+        run: |
+          echo "GitHub Actions successfully completed!"
+
+      - name: Create pull request
+        run: |
+          curl -X POST "https://api.github.com/repos/${{ github.repository }}/pulls" \
+            -H "Authorization: token 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" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            -d "{\"title\": \"${{ github.event.head_commit.message }}\", \"head\": \"develop\", \"base\": \"master\"}"
+
+      - name: Add labels to pull request
+        run: |
+          curl -X POST "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }}/labels" \
+            -H "Authorization: token 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" \
+            -H "Content-Type: application/json" \
+            -d "[{\"name\": \"pull-request-created\"}]"
