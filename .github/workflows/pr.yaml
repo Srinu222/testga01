@@ -3,7 +3,7 @@ name: Create Pull Request
 on:
   push:
     branches:
-      - develop
+      - dev1
 
 jobs:
   create_pull_request:
@@ -15,7 +15,7 @@ jobs:
 
       - name: Print debug information
         run: |
-          echo "Repository is: ${{ github.repository }}"
+          echo "Repository is: ${{ github.repository }} branch is dev1"
           echo "Event Commit Message: ${{ github.event.head_commit.message }}"
 
       - name: Create pull request
@@ -24,4 +24,4 @@ jobs:
             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            -d "{\"title\": \"${{ github.event.head_commit.message }}\", \"head\": \"develop\", \"base\": \"master\"}"
+            -d "{\"title\": \"${{ github.event.head_commit.message }}\", \"head\": \"dev1\", \"base\": \"master\"}"
