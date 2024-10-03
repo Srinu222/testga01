@@ -15,7 +15,7 @@ jobs:
 
       - name: Print debug information
         run: |
-          echo "Repository is: ${{ github.repository }}"
+          echo "Repository is abc: ${{ github.repository }}"
           echo "Event Commit Message: ${{ github.event.head_commit.message }}"
 
       - name: Create pull request
