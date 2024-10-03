@@ -48,11 +48,11 @@ jobs:
     needs: create_pull_request
     steps:
       - name: Wait for pull request approval
-        uses: actions/github-script@v6.1.0  # Specify a stable version compatible with Node 20
+        uses: actions/github-script@v6.1.0
         with:
           script: |
-            const { github, context } = require('@actions/github'); // Ensure proper imports
-            const prNumber = parseInt('${{ steps.create_pr.outputs.pr_number }}'); // Get the PR number
+            const { context } = require('@actions/github');
+            const prNumber = parseInt('${{ steps.create_pr.outputs.pr_number }}');
             let pr;
 
             do {
