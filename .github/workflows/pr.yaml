@@ -28,17 +28,14 @@ jobs:
         id: create_pr
         run: |
           PR_TITLE="${{ github.event.head_commit.message }}"
-          PR_URL=$(curl -s -X POST "https://api.github.com/repos/${{ github.repository }}/pulls" \
+          PR_RESPONSE=$(curl -s -X POST "https://api.github.com/repos/${{ github.repository }}/pulls" \
             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            -d "{\"title\": \"${PR_TITLE}\", \"head\": \"develop\", \"base\": \"master\"}" | jq -r '.html_url')
+            -d "{\"title\": \"${PR_TITLE}\", \"head\": \"develop\", \"base\": \"master\"}")
 
-          PR_NUMBER=$(curl -s -X POST "https://api.github.com/repos/${{ github.repository }}/pulls" \
-            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "Content-Type: application/json" \
-            -d "{\"title\": \"${PR_TITLE}\", \"head\": \"develop\", \"base\": \"master\"}" | jq -r '.number')
+          PR_URL=$(echo "$PR_RESPONSE" | jq -r '.html_url')
+          PR_NUMBER=$(echo "$PR_RESPONSE" | jq -r '.number')
 
           echo "Pull Request URL: $PR_URL"
           echo "::set-output name=pr_url::$PR_URL"
@@ -56,25 +53,24 @@ jobs:
         with:
           script: |
             const prNumber = parseInt('${{ steps.create_pr.outputs.pr_number }}');
-            let pr = await github.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber
-            });
+            let pr;
 
-            while (pr.data.merged === false && pr.data.state === 'open') {
-              console.log("Waiting for PR approval...");
-              await new Promise(resolve => setTimeout(resolve, 300000));  // wait for 5 minutes
+            do {
               pr = await github.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: prNumber
               });
-            }
 
-            if (pr.data.state !== 'open' || pr.data.merged === false) {
-              throw new Error('PR was not approved or was closed.');
-            }
+              if (pr.data.state !== 'open') {
+                throw new Error('PR was not approved or was closed.');
+              }
+
+              console.log("Waiting for PR approval...");
+              await new Promise(resolve => setTimeout(resolve, 300000));  // wait for 5 minutes
+
+            } while (!pr.data.merged && pr.data.state === 'open');
+
             console.log("PR approved and merged.");
 
   post_merge_checks:
