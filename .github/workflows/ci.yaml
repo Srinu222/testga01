@@ -44,21 +44,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-  # Option 1: Manual approval using trstringer/manual-approval action (uncomment to use)
-  # wait_for_approval:
-  #   runs-on: ubuntu-latest
-  #   needs: create_pull_request
-  #   steps:
-  #     - name: Wait for pull request approval
-  #       uses: trstringer/manual-approval@v1
-  #       with:
-  #         title: "Please review and approve Pull Request"
-  #         approvers: "srinivasmurari"
-  #         timeout-minutes: 5
-  #         secret: ${{ secrets.GH_TOKEN }}
-
-  # Option 2: Wait for approval using GitHub Pulls API (uncomment to use)
-  wait_for_approval_api:
+  wait_for_approval:
     runs-on: ubuntu-latest
     needs: create_pull_request
     steps:
@@ -68,12 +54,18 @@ jobs:
           script: |
             const prNumber = parseInt('${{ steps.create_pr.outputs.pr_number }}');
             let pr;
+
             do {
-              pr = await github.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber
-              });
+              try {
+                pr = await github.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber
+                });
+              } catch (error) {
+                console.error("Error fetching pull request:", error);
+                throw error;
+              }
 
               if (pr.data.state !== 'open') {
                 console.log("PR is not open anymore. Exiting.");
@@ -91,8 +83,7 @@ jobs:
 
   post_merge_checks:
     runs-on: ubuntu-latest
-    needs: wait_for_approval_api  # Change to "wait_for_approval" if using Option 1
-    #                                        (uncomment the corresponding job above)
+    needs: wait_for_approval
 
     steps:
       - name: Checkout repository
