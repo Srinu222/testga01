@@ -51,8 +51,10 @@ jobs:
         uses: actions/github-script@v6.1.0
         with:
           script: |
-            let prNumber = parseInt('${{ steps.create_pr.outputs.pr_number }}');
+            const prNumber = parseInt('${{ steps.create_pr.outputs.pr_number }}');
             let pr;
+
+            console.log(`Waiting for approval of PR #${prNumber}`);
 
             do {
               try {
@@ -61,11 +63,14 @@ jobs:
                   repo: context.repo.repo,
                   pull_number: prNumber
                 });
+
+                console.log(`Current PR state: ${pr.data.state}`);
               } catch (error) {
                 console.error("Error fetching pull request:", error);
                 throw error;
               }
 
+              // Check if the PR is still open
               if (pr.data.state !== 'open') {
                 console.log("PR is not open anymore. Exiting.");
                 break;
