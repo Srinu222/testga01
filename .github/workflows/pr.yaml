@@ -24,7 +24,7 @@ jobs:
           echo "Repository: ${{ github.repository }}"
           echo "Event Commit Message: ${{ github.event.head_commit.message }}"
 
-      - name: Create pull request
+      - name: Create pull request with reviewers
         id: create_pr
         run: |
           PR_TITLE="${{ github.event.head_commit.message }}"
@@ -32,7 +32,7 @@ jobs:
             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            -d "{\"title\": \"${PR_TITLE}\", \"head\": \"develop\", \"base\": \"master\"}")
+            -d "{\"title\": \"${PR_TITLE}\", \"head\": \"develop\", \"base\": \"master\", \"requested_reviewers\": [{\"username\": \"reviewer1\"}, {\"username\": \"reviewer2\"}]}")  # Replace with actual reviewer usernames
 
           PR_URL=$(echo "$PR_RESPONSE" | jq -r '.html_url')
           PR_NUMBER=$(echo "$PR_RESPONSE" | jq -r '.number')
@@ -49,29 +49,11 @@ jobs:
     needs: create_pull_request
     steps:
       - name: Wait for pull request approval
-        uses: actions/github-script@v6
+        uses: trstringer/manual-approval@v1
         with:
-          script: |
-            const prNumber = parseInt('${{ steps.create_pr.outputs.pr_number }}');
-            let pr;
-
-            do {
-              pr = await github.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber
-              });
-
-              if (pr.data.state !== 'open') {
-                throw new Error('PR was not approved or was closed.');
-              }
-
-              console.log("Waiting for PR approval...");
-              await new Promise(resolve => setTimeout(resolve, 300000));  // wait for 5 minutes
-
-            } while (!pr.data.merged && pr.data.state === 'open');
-
-            console.log("PR approved and merged.");
+          title: "Please review and approve Pull Request"
+          approvers: "srinivasmurari,Srinu222"  # Replace with usernames needing approval
+          timeout-minutes: 60  # Set a timeout of 1 hour
 
   post_merge_checks:
     runs-on: ubuntu-latest
@@ -106,3 +88,111 @@ jobs:
             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             -d "{\"base\": \"master\", \"head\": \"develop\", \"commit_message\": \"Merging code after approval\"}"
+# name: Create and Merge Pull Request
+
+# on:
+#   push:
+#     branches:
+#       - develop
+
+# jobs:
+#   create_pull_request:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v3
+
+#       - name: Concatenate Terraform files (ec2.tf, main.tf, var.tf)
+#         run: |
+#           cat ec2.tf main.tf var.tf > combined_output.tf
+#           echo "Combined Terraform file content:"
+#           cat combined_output.tf
+
+#       - name: Print debug information
+#         run: |
+#           echo "Repository: ${{ github.repository }}"
+#           echo "Event Commit Message: ${{ github.event.head_commit.message }}"
+
+#       - name: Create pull request
+#         id: create_pr
+#         run: |
+#           PR_TITLE="${{ github.event.head_commit.message }}"
+#           PR_RESPONSE=$(curl -s -X POST "https://api.github.com/repos/${{ github.repository }}/pulls" \
+#             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+#             -H "Accept: application/vnd.github+json" \
+#             -H "Content-Type: application/json" \
+#             -d "{\"title\": \"${PR_TITLE}\", \"head\": \"develop\", \"base\": \"master\"}")
+
+#           PR_URL=$(echo "$PR_RESPONSE" | jq -r '.html_url')
+#           PR_NUMBER=$(echo "$PR_RESPONSE" | jq -r '.number')
+
+#           echo "Pull Request URL: $PR_URL"
+#           echo "::set-output name=pr_url::$PR_URL"
+#           echo "::set-output name=pr_number::$PR_NUMBER"
+
+#     env:
+#       GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+#   wait_for_approval:
+#     runs-on: ubuntu-latest
+#     needs: create_pull_request
+#     steps:
+#       - name: Wait for pull request approval
+#         uses: actions/github-script@v6
+#         with:
+#           script: |
+#             const prNumber = parseInt('${{ steps.create_pr.outputs.pr_number }}');
+#             let pr;
+
+#             do {
+#               pr = await github.pulls.get({
+#                 owner: context.repo.owner,
+#                 repo: context.repo.repo,
+#                 pull_number: prNumber
+#               });
+
+#               if (pr.data.state !== 'open') {
+#                 throw new Error('PR was not approved or was closed.');
+#               }
+
+#               console.log("Waiting for PR approval...");
+#               await new Promise(resolve => setTimeout(resolve, 300000));  // wait for 5 minutes
+
+#             } while (!pr.data.merged && pr.data.state === 'open');
+
+#             console.log("PR approved and merged.");
+
+#   post_merge_checks:
+#     runs-on: ubuntu-latest
+#     needs: wait_for_approval
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v3
+
+#       - name: Check final.tf after PR is merged
+#         run: |
+#           if cat final.tf; then
+#             echo "final.tf check successful!"
+#           else
+#             echo "final.tf check failed. Closing the PR without merging."
+#             curl -X PATCH "https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.create_pr.outputs.pr_number }}" \
+#               -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+#               -H "Accept: application/vnd.github+json" \
+#               -d "{\"state\": \"closed\"}"
+#             exit 1
+#           fi
+
+#   merge_code:
+#     runs-on: ubuntu-latest
+#     needs: post_merge_checks
+#     if: success()  # Proceed only if the previous step succeeded
+
+#     steps:
+#       - name: Merge the code from develop to master
+#         run: |
+#           curl -X POST "https://api.github.com/repos/${{ github.repository }}/merges" \
+#             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+#             -H "Accept: application/vnd.github+json" \
+#             -d "{\"base\": \"master\", \"head\": \"develop\", \"commit_message\": \"Merging code after approval\"}"
