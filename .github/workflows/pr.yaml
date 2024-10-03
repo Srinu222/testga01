@@ -44,12 +44,7 @@ jobs:
           echo "::set-output name=pr_url::$PR_URL"
           echo "::set-output name=pr_number::$PR_NUMBER"
 
-      - name: Request reviewers for the PR
-        run: |
-          curl -X POST "https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.create_pr.outputs.pr_number }}/requested_reviewers" \
-            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            -d '{"reviewers":["srinivasmurari", "Srinu222"]}'
+     
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
