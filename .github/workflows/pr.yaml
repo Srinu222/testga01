@@ -54,7 +54,8 @@ jobs:
           title: "Please review and approve Pull Request"
           approvers: "srinivasmurari"
           timeout-minutes: 60
-          secret: ${{ secrets.GH_TOKEN }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
   post_merge_checks:
     runs-on: ubuntu-latest
@@ -67,20 +68,25 @@ jobs:
       - name: Check final.tf after PR is merged
         run: |
           set -e
-          if cat final.t1f; then
+          PR_NUMBER="${{ steps.create_pr.outputs.pr_number }}"
+          echo "Pull Request number: $PR_NUMBER"
+
+          # Check if final.tf exists and is valid
+          if cat final.tf; then
             echo "final.tf check successful!"
           else
             echo "final.tf check failed. Closing the PR without merging."
-            curl -X PATCH "https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.create_pr.outputs.pr_number }}" \
+            curl -X PATCH "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}" \
               -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
               -H "Accept: application/vnd.github+json" \
               -d "{\"state\": \"closed\"}"
+            exit 1
           fi
 
   merge_code:
     runs-on: ubuntu-latest
     needs: post_merge_checks
-    if: success()  # Proceed only if the previous step succeeded
+    if: success()
 
     steps:
       - name: Merge the code from develop to master
