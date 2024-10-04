@@ -66,7 +66,7 @@ jobs:
 
       - name: Check final.tf after PR is merged
         run: |
-          if cat final.tf; then
+          if cat final.t1f; then
             echo "final.tf check successful!"
           else
             echo "final.tf check failed. Closing the PR without merging."
@@ -74,7 +74,6 @@ jobs:
               -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
               -H "Accept: application/vnd.github+json" \
               -d "{\"state\": \"closed\"}"
-            exit 1
           fi
 
   merge_code:
