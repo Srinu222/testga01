@@ -66,6 +66,7 @@ jobs:
 
       - name: Check final.tf after PR is merged
         run: |
+          set -e
           if cat final.t1f; then
             echo "final.tf check successful!"
           else
