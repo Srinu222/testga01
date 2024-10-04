@@ -74,7 +74,6 @@ jobs:
               -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
               -H "Accept: application/vnd.github+json" \
               -d "{\"state\": \"closed\"}"
-            exit 1
           fi
 
   merge_code:
